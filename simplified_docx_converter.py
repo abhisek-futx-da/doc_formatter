@@ -65,10 +65,10 @@ class SimplifiedDOCXConverter:
         for tool, cmd in required_tools.items():
             try:
                 subprocess.run(cmd.split(), capture_output=True, check=True)
-                print(f"✓ {tool} found")
+                print(f"[OK] {tool} found")
             except (subprocess.CalledProcessError, FileNotFoundError):
                 missing.append(tool)
-                print(f"❌ {tool} not found")
+                print(f"[ERROR] {tool} not found")
         
         if missing:
             print(f"\nPlease install missing tools: {', '.join(missing)}")
@@ -90,11 +90,11 @@ class SimplifiedDOCXConverter:
                          open(images_dir / filename, 'wb') as target:
                         shutil.copyfileobj(source, target)
                 
-                print(f"✓ Extracted {len(media_files)} media files")
+                print(f"[OK] Extracted {len(media_files)} media files")
                 return list(images_dir.glob("*"))
                 
         except Exception as e:
-            print(f"⚠ Warning: Could not extract images: {e}")
+            print(f"[WARNING] Could not extract images: {e}")
             return []
     
     def convert_docx_to_latex(self):
@@ -102,7 +102,7 @@ class SimplifiedDOCXConverter:
         print("Step 1: Converting DOCX to LaTeX...")
         
         if not self.docx_path.exists():
-            print(f"❌ Input file not found: {self.docx_path}")
+            print(f"[ERROR] Input file not found: {self.docx_path}")
             return None
         
         latex_file = self.temp_dir / "converted.tex"
@@ -118,13 +118,13 @@ class SimplifiedDOCXConverter:
         
         try:
             result = subprocess.run(pandoc_cmd, capture_output=True, text=True, check=True)
-            print("✓ DOCX converted to LaTeX")
+            print("[OK] DOCX converted to LaTeX")
             return latex_file
         except subprocess.CalledProcessError as e:
-            print(f"❌ Pandoc conversion failed: {e.stderr}")
+            print(f"[ERROR] Pandoc conversion failed: {e.stderr}")
             return None
         except FileNotFoundError:
-            print("❌ Pandoc not found. Please install pandoc first.")
+            print("[ERROR] Pandoc not found. Please install pandoc first.")
             return None
 
     def extract_preamble_from_template(self):
@@ -132,7 +132,7 @@ class SimplifiedDOCXConverter:
         print("Step 2: Extracting preamble from template...")
         
         if not self.template_path.exists():
-            print(f"❌ Template file {self.template_path} not found!")
+            print(f"[ERROR] Template file {self.template_path} not found!")
             return ""
         
         # Try multiple encodings to read the template file
@@ -142,7 +142,7 @@ class SimplifiedDOCXConverter:
             try:
                 with open(self.template_path, 'r', encoding=encoding) as f:
                     template_content = f.read()
-                print(f"✓ Successfully read template with {encoding} encoding")
+                print(f"[OK] Successfully read template with {encoding} encoding")
                 break
             except UnicodeDecodeError:
                 continue
@@ -151,19 +151,19 @@ class SimplifiedDOCXConverter:
             try:
                 with open(self.template_path, 'r', encoding='utf-8', errors='ignore') as f:
                     template_content = f.read()
-                print("✓ Read template with utf-8 encoding (ignoring errors)")
+                print("[OK] Read template with utf-8 encoding (ignoring errors)")
             except Exception as e:
-                print(f"❌ Failed to read template file: {e}")
+                print(f"[ERROR] Failed to read template file: {e}")
                 return ""
         
         begin_doc_match = re.search(r'\\begin\{document\}', template_content)
         if begin_doc_match:
             # Keep only content from \begin{document} onwards
             preamble = template_content[:begin_doc_match.start()].strip()
-            print(f"✓ Extracted preamble ({len(preamble)} characters)")
+            print(f"[OK] Extracted preamble ({len(preamble)} characters)")
             return preamble
         else:
-            print("⚠ Warning: \\begin{document} not found in template")
+            print("[WARNING] \\begin{document} not found in template")
             return template_content.strip()
     
     @staticmethod
@@ -584,7 +584,7 @@ class SimplifiedDOCXConverter:
             try:
                 with open(converted_latex_file, 'r', encoding=encoding) as f:
                     latex_content = f.read()
-                print(f"✓ Successfully read converted LaTeX with {encoding} encoding")
+                print(f"[OK] Successfully read converted LaTeX with {encoding} encoding")
                 break
             except UnicodeDecodeError:
                 continue
@@ -593,9 +593,9 @@ class SimplifiedDOCXConverter:
             try:
                 with open(converted_latex_file, 'r', encoding='utf-8', errors='ignore') as f:
                     latex_content = f.read()
-                print("✓ Read converted LaTeX with utf-8 encoding (ignoring errors)")
+                print("[OK] Read converted LaTeX with utf-8 encoding (ignoring errors)")
             except Exception as e:
-                print(f"❌ Failed to read converted LaTeX file: {e}")
+                print(f"[ERROR] Failed to read converted LaTeX file: {e}")
                 return ""
         
         begin_doc_match = re.search(r'\\begin\{document\}', latex_content)
@@ -616,13 +616,13 @@ class SimplifiedDOCXConverter:
         final_content = template_preamble + "\n\n" + document_content
         
         column_layout = self.detect_column_layout()
-        print(f"✓ Detected {column_layout} layout")
+        print(f"[OK] Detected {column_layout} layout")
         
         final_content = self.process_tables_custom(final_content)
-        print("✓ Tables processed with custom formatting")
+        print("[OK] Tables processed with custom formatting")
         
         final_content = self.process_images_optimally(final_content, column_layout)
-        print("✓ Images processed with optimal sizing")
+        print("[OK] Images processed with optimal sizing")
         
         return final_content
     
@@ -649,7 +649,7 @@ class SimplifiedDOCXConverter:
                 ], capture_output=True, text=True, timeout=120)  # 2 minute timeout
                 
                 if result.returncode != 0:
-                    print(f"⚠ LaTeX pass {i+1} had issues (return code: {result.returncode})")
+                    print(f"[WARNING] LaTeX pass {i+1} had issues (return code: {result.returncode})")
                     
                     # Show relevant error messages
                     if result.stdout:
@@ -666,26 +666,26 @@ class SimplifiedDOCXConverter:
                         print(result.stdout[-800:] if result.stdout else "No stdout")
                         break
                 else:
-                    print(f"  ✓ LaTeX pass {i+1} completed successfully")
+                    print(f"  [OK] LaTeX pass {i+1} completed successfully")
             
             pdf_file = tex_file.with_suffix('.pdf')
             if pdf_file.exists():
-                print(f"✅ PDF created successfully: {pdf_file}")
+                print(f"[SUCCESS] PDF created successfully: {pdf_file}")
                 return True
             else:
-                print("❌ PDF not created, but .tex file is available")
+                print("[ERROR] PDF not created, but .tex file is available")
                 print("Check the LaTeX file manually for compilation issues")
                 return False
                 
         except subprocess.TimeoutExpired:
-            print("❌ PDF compilation timed out after 2 minutes")
+            print("[ERROR] PDF compilation timed out after 2 minutes")
             print("The LaTeX compilation may be stuck - check your .tex file")
             return False
         except FileNotFoundError:
-            print("❌ pdflatex not found. Install LaTeX distribution.")
+            print("[ERROR] pdflatex not found. Install LaTeX distribution.")
             return False
         except Exception as e:
-            print(f"❌ PDF compilation failed: {e}")
+            print(f"[ERROR] PDF compilation failed: {e}")
             return False
         finally:
             os.chdir(original_dir)
@@ -704,7 +704,7 @@ class SimplifiedDOCXConverter:
             self.temp_dir.mkdir(exist_ok=True)
             self.output_dir.mkdir(exist_ok=True)
         except Exception as e:
-            print(f"❌ Failed to create directories: {e}")
+            print(f"[ERROR] Failed to create directories: {e}")
             return False
         
         try:
@@ -721,7 +721,7 @@ class SimplifiedDOCXConverter:
             with open(output_file, 'w', encoding='utf-8') as f:
                 f.write(final_latex)
             
-            print(f"✅ LaTeX file created: {output_file}")
+            print(f"[SUCCESS] LaTeX file created: {output_file}")
             
             images_src = self.temp_dir / "images"
             images_dst = self.output_dir / "images"
@@ -729,25 +729,25 @@ class SimplifiedDOCXConverter:
                 if images_dst.exists():
                     shutil.rmtree(images_dst)
                 shutil.copytree(images_src, images_dst)
-                print(f"✓ Images copied to: {images_dst}")
+                print(f"[OK] Images copied to: {images_dst}")
             
             pdf_success = self.compile_pdf(output_file)
             
             print(f"\n{'='*50}")
             print("CONVERSION COMPLETE!")
             print(f"{'='*50}")
-            print(f"📄 LaTeX file: {output_file}")
+            print(f"LaTeX file: {output_file}")
             if pdf_success:
-                print(f"📕 PDF file: {output_file.with_suffix('.pdf')}")
+                print(f"PDF file: {output_file.with_suffix('.pdf')}")
             else:
-                print("📄 LaTeX file is available for manual compilation")
+                print("LaTeX file is available for manual compilation")
             if images_dst.exists():
-                print(f"🖼️ Images: {images_dst}")
+                print(f"Images: {images_dst}")
             
             return True
             
         except Exception as e:
-            print(f"❌ Conversion failed: {e}")
+            print(f"[ERROR] Conversion failed: {e}")
             logger.exception("Detailed error information:")
             return False
         
@@ -755,9 +755,9 @@ class SimplifiedDOCXConverter:
             if self.temp_dir.exists():
                 try:
                     shutil.rmtree(self.temp_dir, ignore_errors=True)
-                    print("✓ Cleaned up temporary files")
+                    print("[OK] Cleaned up temporary files")
                 except Exception as e:
-                    print(f"⚠ Warning: Could not clean up temp directory: {e}")
+                    print(f"[WARNING] Could not clean up temp directory: {e}")
 
 def main():
     """Run the simplified converter"""
@@ -765,7 +765,7 @@ def main():
     print("=" * 60)
     
     if not Path(DOCX_FILE).exists():
-        print(f"❌ Input file not found: {DOCX_FILE}")
+        print(f"[ERROR] Input file not found: {DOCX_FILE}")
         print("Please update the DOCX_FILE variable with the correct path.")
         return False
     
